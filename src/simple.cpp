@@ -17,6 +17,28 @@
 #include "imgui.h"
 #include "rlImGui.h"
 
+#if defined(PLATFORM_WEB)
+#include <emscripten/emscripten.h>
+#endif
+
+void UpdatePaintFrame(void)
+{
+  BeginDrawing();
+  ClearBackground(DARKGRAY);
+
+  // start ImGui Conent
+  rlImGuiBegin();
+
+  // show ImGui Content
+  bool open = true;
+  ImGui::ShowDemoWindow(&open);
+
+  // end ImGui Content
+  rlImGuiEnd();
+
+  EndDrawing();
+}
+
 int main(int argc, char* argv[])
 {
 	// Initialization
@@ -29,24 +51,14 @@ int main(int argc, char* argv[])
 	SetTargetFPS(144);
 	rlImGuiSetup(true);
 
+#if defined(PLATFORM_WEB)
+  emscripten_set_main_loop(UpdatePaintFrame, 0, 1);
+#else
+
 	// Main game loop
 	while (!WindowShouldClose())    // Detect window close button or ESC key
 	{
-		BeginDrawing();
-		ClearBackground(DARKGRAY);
-
-		// start ImGui Conent
-		rlImGuiBegin();
-
-		// show ImGui Content
-		bool open = true;
-		ImGui::ShowDemoWindow(&open);
-
-		// end ImGui Content
-		rlImGuiEnd();
-
-		EndDrawing();
-		//----------------------------------------------------------------------------------
+    UpdatePaintFrame();
 	}
 	rlImGuiShutdown();
 
@@ -54,6 +66,6 @@ int main(int argc, char* argv[])
 	//--------------------------------------------------------------------------------------   
 	CloseWindow();        // Close window and OpenGL context
 	//--------------------------------------------------------------------------------------
-
+#endif
 	return 0;
 }
