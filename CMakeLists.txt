@@ -12,7 +12,7 @@ set(BUILD_GAMES    OFF CACHE BOOL "" FORCE) # don't build the supplied example g
 FetchContent_Declare(raylib GIT_REPOSITORY https://github.com/raysan5/raylib.git GIT_TAG master)
 FetchContent_MakeAvailable(raylib)
 
-FetchContent_Declare(imGui GIT_REPOSITORY https://github.com/ocornut/imgui.git GIT_TAG master)
+FetchContent_Declare(imGui GIT_REPOSITORY https://github.com/ocornut/imgui.git GIT_TAG docking)
 FetchContent_GetProperties(imGui)
 if(NOT imGui_POPULATED)
   FetchContent_Populate(imGui)
@@ -47,11 +47,12 @@ file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/s
 set(PROJECT_INCLUDE "${CMAKE_CURRENT_LIST_DIR}/src/") # Define PROJECT_INCLUDE to be the path to the include directory of the project
 
 file(GLOB IMGUI_SOURCES CONFIGURE_DEPENDS "${imgui_SOURCE_DIR}/*.cpp")
+file(GLOB_RECURSE 3PP_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/3pp/*.cpp")
 
 # Declaring our executable
 add_executable(${PROJECT_NAME})
-target_sources(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCES} ${rlimgui_SOURCE_DIR}/rlImGui.cpp ${IMGUI_SOURCES})
-target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_INCLUDE} ${visit_struct_SOURCE_DIR}/include/ ${json_SOURCE_DIR}/single_include/ ${rlimgui_SOURCE_DIR}/ ${imgui_SOURCE_DIR}/)
+target_sources(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCES} ${rlimgui_SOURCE_DIR}/rlImGui.cpp ${IMGUI_SOURCES} ${3PP_SOURCES})
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_INCLUDE} ${visit_struct_SOURCE_DIR}/include/ ${json_SOURCE_DIR}/single_include/ ${rlimgui_SOURCE_DIR}/ ${imgui_SOURCE_DIR}/ ${CMAKE_CURRENT_LIST_DIR}/3pp/imgui_widgets/)
 
 if (EMSCRIPTEN)
   set_target_properties(${PROJECT_NAME}
