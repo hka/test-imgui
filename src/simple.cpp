@@ -37,6 +37,7 @@ struct ExampleAppConsole
   ImGuiTextFilter       Filter;
   bool                  AutoScroll;
   bool                  ScrollToBottom;
+  ImGuiID dockspace_id;
 
   ExampleAppConsole()
     {
@@ -72,21 +73,14 @@ void UpdatePaintFrame(void)
 #if 1
   static bool create_new_workspace = false;
 
-  if(create_new_workspace)
-  {
-    WORKSPACE.push_back(ExampleAppConsole());
-    create_new_workspace = false;
-    printf("%lu\n", WORKSPACE.size());
-  }
-
   ImGuiWindowFlags window_flags = 0;
   window_flags |= ImGuiWindowFlags_MenuBar;
-  window_flags |= ImGuiWindowFlags_NoTitleBar;
-  window_flags |= ImGuiWindowFlags_NoScrollbar;
-  window_flags |= ImGuiWindowFlags_NoMove;
-  window_flags |= ImGuiWindowFlags_NoResize;
-  window_flags |= ImGuiWindowFlags_NoCollapse;
-  window_flags |= ImGuiWindowFlags_NoNav;
+  //window_flags |= ImGuiWindowFlags_NoTitleBar;
+  //window_flags |= ImGuiWindowFlags_NoScrollbar;
+  //window_flags |= ImGuiWindowFlags_NoMove;
+  //window_flags |= ImGuiWindowFlags_NoResize;
+  //window_flags |= ImGuiWindowFlags_NoCollapse;
+  //window_flags |= ImGuiWindowFlags_NoNav;
   window_flags |= ImGuiWindowFlags_NoDocking;
 
   const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
@@ -96,7 +90,6 @@ void UpdatePaintFrame(void)
   bool use_work_area = true;
   ImGui::SetNextWindowPos(use_work_area ? viewport->WorkPos : viewport->Pos);
   ImGui::SetNextWindowSize(use_work_area ? viewport->WorkSize : viewport->Size);
-
   static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
   dockspace_flags |= ImGuiDockNodeFlags_AutoHideTabBar;
 
@@ -121,9 +114,23 @@ void UpdatePaintFrame(void)
   //tabs -------------------------------------------------------------
   static ImVector<int> active_tabs;
   static int next_tab_id = 0;
+  static int active_ix = 0;
+  static ImVector<ImGuiID> tab_dockspace_id;
+
   if (next_tab_id == 0) // Initialize with some default tabs
     for (int i = 0; i < 1; i++)
+    {
+      ImGuiID dockspace_id = 0;
+      ImGuiIO& io = ImGui::GetIO();
+      if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+      {
+        std::string d_id = "MyDockSpace" + std::to_string(next_tab_id);
+        dockspace_id = ImGui::GetID(d_id.c_str());
+      }
+
       active_tabs.push_back(next_tab_id++);
+      tab_dockspace_id.push_back(dockspace_id);
+    }
 
   // Expose some other flags which are useful to showcase how they interact with Leading/Trailing tabs
   static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_FittingPolicyResizeDown | ImGuiTabBarFlags_TabListPopupButton;
@@ -132,7 +139,16 @@ void UpdatePaintFrame(void)
   {
     if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
     {
-      active_tabs.push_back(next_tab_id++); // Add new tab
+      ImGuiID dockspace_id = 0;
+      ImGuiIO& io = ImGui::GetIO();
+      if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+      {
+        std::string d_id = "MyDockSpace" + std::to_string(next_tab_id);
+        dockspace_id = ImGui::GetID(d_id.c_str());
+      }
+
+      active_tabs.push_back(next_tab_id++);
+      tab_dockspace_id.push_back(dockspace_id);
     }
 
     // Submit our regular tabs
@@ -148,17 +164,20 @@ void UpdatePaintFrame(void)
         ImGuiIO& io = ImGui::GetIO();
         if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
         {
-          std::string d_id = "MyDockSpace" + std::to_string(n);
-          ImGuiID dockspace_id = ImGui::GetID(d_id.c_str());
+          ImGuiID dockspace_id = tab_dockspace_id[n];
           ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
         }
+        active_ix = n;
         ImGui::EndTabItem();
       }
       else
       {
-        std::string d_id = "MyDockSpace" + std::to_string(n);
-        ImGuiID dockspace_id = ImGui::GetID(d_id.c_str());
-        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_KeepAliveOnly);
+        ImGuiIO& io = ImGui::GetIO();
+        if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+        {
+          ImGuiID dockspace_id = tab_dockspace_id[n];
+          ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_KeepAliveOnly);
+        }
       }
 
       if (!open)
@@ -178,8 +197,25 @@ void UpdatePaintFrame(void)
   {
     bool open = true;
     std::string name = "test" + std::to_string(ii);
+    ImGui::SetNextWindowDockID(WORKSPACE[ii].dockspace_id , ImGuiCond_Always); //ImGuiCond_FirstUseEver
     WORKSPACE[ii].Draw(name.c_str(),&open);
   }
+
+  if(create_new_workspace)
+  {
+    WORKSPACE.push_back(ExampleAppConsole());
+
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+    {
+      ImGuiID dockspace_id = tab_dockspace_id[active_ix];
+      WORKSPACE.back().dockspace_id = dockspace_id;
+    }
+
+    create_new_workspace = false;
+    printf("%lu\n", WORKSPACE.size());
+  }
+
 #else
   // show ImGui Content
   bool open = true;
